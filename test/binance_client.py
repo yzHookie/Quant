@@ -43,6 +43,13 @@ class TimeInForce(Enum):
     GTX = "GTX"
 
 
+class RequestMethod(Enum):
+    GET = "get"
+    POST = "post"
+    DELETE = "delete"
+    PUT = "put"
+
+
 class BinanceFutureHttpClient:
     def __init__(
         self,
@@ -59,64 +66,76 @@ class BinanceFutureHttpClient:
     def GetTimeStamp(self):
         return int(time.time() * 1000)
 
+    def BuildParamsUrl(self, params: dict):
+        requery = "&".join([f"{key}={params[key]}" for key in params.keys()])
+        return requery
+
+    def Request(self, method: RequestMethod, path, params=None, verify=False):
+        url = self.base_url_ + path
+        if params:
+            url += "?" + self.BuildParamsUrl(params)
+
+        # 需要签名的api
+        if verify:
+            query_str = self.BuildParamsUrl(params)
+            signature = hmac.new(
+                self.secret_.encode("utf-8"),
+                msg=query_str.encode("utf-8"),
+                digestmod=hashlib.sha256,
+            ).hexdigest()
+            url += "&signature=" + signature
+        print(url)
+        headers = {"X-MBX-APIKEY": self.key_}
+        return requests.request(
+            method.value, url, headers=headers, timeout=self.timeout_
+        ).json()
+
     def GetServerStatus(self):
         path = "/fapi/v1/ping"
-        url = self.base_url_ + path
-        response_data = requests.get(url, timeout=self.timeout_).json()
-        return response_data
+        return self.Request(RequestMethod.GET, path)
 
     def GetServerTime(self):
         path = "/fapi/v1/time"
-        url = self.base_url_ + path
-        response_data = requests.get(url, timeout=self.timeout_).json()
-        return response_data
+        return self.Request(RequestMethod.GET, path)
 
     def GetExchangeInfo(self):
         path = "/fapi/v1/exchangeInfo"
-        url = self.base_url_ + path
-        response_data = requests.get(url, timeout=self.timeout_).json()
-        return response_data
+        return self.Request(RequestMethod.GET, path)
 
     def GetMarketDepth(self, symbol, limit=5):
         limits = [5, 10, 20, 50, 100, 500, 1000]
         if limit not in limits:
             limit = 5
         path = "/fapi/v1/depth"
-        url = self.base_url_ + path
         params = {"symbol": symbol, "limit": limit}
-        response_data = requests.get(url, params=params, timeout=self.timeout_).json()
-        return response_data
+        return self.Request(RequestMethod.GET, path, params)
 
     def GetKlines(
         self, symbol, interval: Interval, start_time=None, end_time=None, limit=500
     ):
         path = "/fapi/v1/klines"
-        params = {"symbol": symbol, "interval": interval, "limit": limit}
+        params = {"symbol": symbol, "interval": interval.value, "limit": limit}
         if start_time:
             params["startTime"] = start_time
         if end_time:
             params["endTime"] = end_time
-        url = self.base_url_ + path
-        response_data = requests.get(url, params=params, timeout=self.timeout_).json()
-        return response_data
+        return self.Request(RequestMethod.GET, path, params)
 
     def GetTickerPrice(self, symbol=None):
         path = "/fapi/v1/ticker/price"
-        url = self.base_url_ + path
+        params = None
         if symbol:
-            url += "?symbol=" + symbol
-        response_data = requests.get(url, timeout=self.timeout_).json()
-        return response_data
+            params = {"symbol": symbol}
+        return self.Request(RequestMethod.GET, path, params)
 
     def GetBookTicker(self, symbol=None):
         path = "/fapi/v1/ticker/bookTicker"
-        url = self.base_url_ + path
+        params = None
         if symbol:
-            url += "?symbol=" + symbol
-        response_data = requests.get(url, timeout=self.timeout_).json()
-        return response_data
+            params = {"symbol": symbol}
+        return self.Request(RequestMethod.GET, path, params)
 
-    def PlaceOrder(
+    def PostPlaceOrder(
         self,
         symbol,
         side: Side,
@@ -167,24 +186,7 @@ class BinanceFutureHttpClient:
             else:
                 raise ValueError("stop price is empty")
 
-        query_str = ""
-        for key in params.keys():
-            query_str += f"{key}={params[key]}&"
-        query_str = query_str[0:-1]
-        signature = hmac.new(
-            self.secret_.encode("utf-8"),
-            msg=query_str.encode("utf-8"),
-            digestmod=hashlib.sha256,
-        ).hexdigest()
-        query_str += "&signature=" + signature
-        url = self.base_url_ + path + "?" + query_str
-        print(url)
-        headers = {"X-MBX-APIKEY": self.key_}
-        response_data = requests.post(
-            url, headers=headers, timeout=self.timeout_
-        ).json()
-        print(response_data)
-        return response_data
+        return self.Request(RequestMethod.POST, path, params, verify=True)
 
 
 if __name__ == "__main__":
@@ -205,4 +207,5 @@ if __name__ == "__main__":
     # print(ticker_price)
     # book_ticker = bf.GetBookTicker("BTCUSDT")
     # print(book_ticker)
-    bf.PlaceOrder("BTCUSDT", Side.BUY, OrderType.LIMIT, 1, 10000)
+    post_order_info = bf.PostPlaceOrder("BTCUSDT", Side.BUY, OrderType.LIMIT, 1, 10000)
+    print(post_order_info)
