@@ -36,6 +36,11 @@ class Side(Enum):
     SELL = "SELL"
 
 
+class PositionSide(Enum):
+    LONG = "LONG"
+    SHORT = "SHORT"
+
+
 class TimeInForce(Enum):
     GTC = "GTC"
     IOC = "IOC"
@@ -139,6 +144,7 @@ class BinanceFutureHttpClient:
         self,
         symbol,
         side: Side,
+        position_side: PositionSide,
         order_type: OrderType,
         quantity,
         price=None,
@@ -150,6 +156,7 @@ class BinanceFutureHttpClient:
         params = {
             "symbol": symbol,
             "side": side.value,
+            "positionSide": position_side.value,
             "type": order_type.value,
             "quantity": quantity,
             "recvWindow": recv_window,
@@ -188,6 +195,46 @@ class BinanceFutureHttpClient:
 
         return self.Request(RequestMethod.POST, path, params, verify=True)
 
+    def GetOrder(self, symbol, order_id, recv_window=5000):
+        path = "/fapi/v1/order"
+        params = {
+            "symbol": symbol,
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+            "orderId": order_id,
+        }
+        return self.Request(RequestMethod.GET, path, params, verify=True)
+
+    def DeleteOrder(self, symbol, order_id, recv_window=5000):
+        path = "/fapi/v1/order"
+        params = {
+            "symbol": symbol,
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+            "orderId": order_id,
+        }
+        return self.Request(RequestMethod.DELETE, path, params, verify=True)
+
+    def GetOpenOrder(self, symbol, order_id, recv_window=5000):
+        path = "/fapi/v1/openOrder"
+        params = {
+            "symbol": symbol,
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+            "orderId": order_id,
+        }
+        return self.Request(RequestMethod.GET, path, params, verify=True)
+
+    def GetOpenOrders(self, symbol=None, recv_window=5000):
+        path = "/fapi/v1/openOrders"
+        params = {
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+        }
+        if symbol:
+            params["symbol"] = symbol
+        return self.Request(RequestMethod.GET, path, params, verify=True)
+
 
 if __name__ == "__main__":
     key = "OGx3Q7YnvI6GZyGA8I9FS4MYspYep00g72yjvqyg6Ze6YtyL2rmU8GV6ke2YeK95"
@@ -207,5 +254,16 @@ if __name__ == "__main__":
     # print(ticker_price)
     # book_ticker = bf.GetBookTicker("BTCUSDT")
     # print(book_ticker)
-    post_order_info = bf.PostPlaceOrder("BTCUSDT", Side.BUY, OrderType.LIMIT, 1, 10000)
-    print(post_order_info)
+    # post_order_info = bf.PostPlaceOrder(
+    #     "DOGEUSDT",
+    #     Side.BUY,
+    #     PositionSide.LONG,
+    #     OrderType.LIMIT,
+    #     quantity=50,
+    #     price=0.15,
+    # )
+    # print(post_order_info)
+    # order = bf.GetOrder("DOGEUSDT", order_id=42014432304)
+    # print(order)
+    # bf.DeleteOrder("DOGEUSDT", 42014432304)
+    # print(bf.GetOpenOrders())
