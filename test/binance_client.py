@@ -37,6 +37,11 @@ class Side(Enum):
     SELL = "SELL"
 
 
+class PositionSide(Enum):
+    LONG = "LONG"
+    SHORT = "SHORT"
+
+
 class TimeInForce(Enum):
     GTC = "GTC"
     IOC = "IOC"
@@ -140,6 +145,7 @@ class BinanceFutureHttpClient:
         self,
         symbol,
         side: Side,
+        position_side: PositionSide,
         order_type: OrderType,
         quantity,
         price=None,
@@ -151,6 +157,7 @@ class BinanceFutureHttpClient:
         params = {
             "symbol": symbol,
             "side": side.value,
+            "positionSide": position_side.value,
             "type": order_type.value,
             "quantity": quantity,
             "recvWindow": recv_window,
@@ -188,6 +195,46 @@ class BinanceFutureHttpClient:
                 raise ValueError("stop price is empty")
 
         return self.Request(RequestMethod.POST, path, params, verify=True)
+
+    def GetOrder(self, symbol, order_id, recv_window=5000):
+        path = "/fapi/v1/order"
+        params = {
+            "symbol": symbol,
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+            "orderId": order_id,
+        }
+        return self.Request(RequestMethod.GET, path, params, verify=True)
+
+    def DeleteOrder(self, symbol, order_id, recv_window=5000):
+        path = "/fapi/v1/order"
+        params = {
+            "symbol": symbol,
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+            "orderId": order_id,
+        }
+        return self.Request(RequestMethod.DELETE, path, params, verify=True)
+
+    def GetOpenOrder(self, symbol, order_id, recv_window=5000):
+        path = "/fapi/v1/openOrder"
+        params = {
+            "symbol": symbol,
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+            "orderId": order_id,
+        }
+        return self.Request(RequestMethod.GET, path, params, verify=True)
+
+    def GetOpenOrders(self, symbol=None, recv_window=5000):
+        path = "/fapi/v1/openOrders"
+        params = {
+            "recvWindow": recv_window,
+            "timestamp": self.GetTimeStamp(),
+        }
+        if symbol:
+            params["symbol"] = symbol
+        return self.Request(RequestMethod.GET, path, params, verify=True)
 
 
 if __name__ == "__main__":
