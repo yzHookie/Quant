@@ -4,6 +4,7 @@ import time
 import hmac
 import hashlib
 from enum import Enum
+import pymongo
 
 
 class Interval(Enum):
@@ -193,19 +194,23 @@ if __name__ == "__main__":
     key = "OGx3Q7YnvI6GZyGA8I9FS4MYspYep00g72yjvqyg6Ze6YtyL2rmU8GV6ke2YeK95"
     secret = "hy1eqcfiECpyDCbuNN5HZLkOnzE2ljnyK1SOedB8256F7M5hB7GHTdUotY7XnScN"
     bf = BinanceFutureHttpClient(api_key=key, api_secret=secret)
+    db_client = pymongo.MongoClient("mongodb://localhost:27017/")
+    db = db_client["quant"]
+    db_collection = db["test"]
     # server_status = bf.GetServerStatus()
     # print(server_status)
     # server_time = bf.GetServerTime()
     # print(server_time)
     # exchange_info = bf.GetExchangeInfo()
     # print(exchange_info)
-    # market_depth = bf.GetMarketDepth("BTCUSDT", 10)
-    # print(market_depth)
+    market_depth = bf.GetMarketDepth("BTCUSDT", 10)
+    print(market_depth)
+    db_collection.insert_one(market_depth)
     # klines = bf.GetKlines("BTCUSDT", Interval.MIN_1)
     # print(klines)
     # ticker_price = bf.GetTickerPrice("BTCUSDT")
     # print(ticker_price)
     # book_ticker = bf.GetBookTicker("BTCUSDT")
     # print(book_ticker)
-    post_order_info = bf.PostPlaceOrder("BTCUSDT", Side.BUY, OrderType.LIMIT, 1, 10000)
-    print(post_order_info)
+    # post_order_info = bf.PostPlaceOrder("BTCUSDT", Side.BUY, OrderType.LIMIT, 1, 10000)
+    # print(post_order_info)
