@@ -238,8 +238,6 @@ class BinanceFutureHttpClient:
 
 
 if __name__ == "__main__":
-    key = "OGx3Q7YnvI6GZyGA8I9FS4MYspYep00g72yjvqyg6Ze6YtyL2rmU8GV6ke2YeK95"
-    secret = "hy1eqcfiECpyDCbuNN5HZLkOnzE2ljnyK1SOedB8256F7M5hB7GHTdUotY7XnScN"
     bf = BinanceFutureHttpClient(api_key=key, api_secret=secret)
     db_client = pymongo.MongoClient("mongodb://localhost:27017/")
     db = db_client["quant"]
